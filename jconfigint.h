@@ -3,7 +3,19 @@
 #define BUILD ""
 
 /* How to obtain function inlining. */
-#define INLINE inline __attribute__((always_inline))
+#ifndef INLINE
+  #ifndef TURBO_FOR_WINDOWS
+    #define INLINE inline __attribute__((always_inline))
+  #else
+    #if defined(__GNUC__)
+      #define INLINE inline __attribute__((always_inline))
+    #elif defined(_MSC_VER)
+      #define INLINE __forceinline
+    #else
+      #define INLINE
+    #endif
+  #endif
+#endif
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "libjpeg-turbo"
