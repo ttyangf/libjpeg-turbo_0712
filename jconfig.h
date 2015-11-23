@@ -50,7 +50,7 @@
 /* #undef NEED_BSD_STRINGS */
 
 /* Define if you need to include <sys/types.h> to get size_t. */
-#define NEED_SYS_TYPES_H 1
+/* #undef NEED_SYS_TYPES_H 1 */
 
 /* Define if your (broken) compiler shifts signed values as if they were
    unsigned. */
@@ -71,4 +71,8 @@
 /* #undef size_t */
 
 /* The size of `size_t', as computed by sizeof. */
+#if __WORDSIZE==64 || defined(_WIN64)
 #define SIZEOF_SIZE_T 8
+#else
+#define SIZEOF_SIZE_T 4
+#endif
