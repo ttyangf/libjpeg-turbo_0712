@@ -408,7 +408,7 @@ LOCAL(void)
 prepare_range_limit_table (j_decompress_ptr cinfo)
 /* Allocate and fill in the sample_range_limit table */
 {
-  JSAMPLE * table;
+  JSAMPLE *table;
   int i;
 
   table = (JSAMPLE *)

@@ -1,7 +1,46 @@
-1.4.3
-=====
+1.5 beta1
+=========
 
-[1] Fixed a regression caused by 1.4.1[6] that prevented 32-bit and 64-bit
+[1] Added full SIMD acceleration for PowerPC platforms using AltiVec VMX
+(128-bit SIMD) instructions.  Although the performance of libjpeg-turbo on
+PowerPC was already good, due to the increased number of registers available
+to the compiler vs. x86, it was still possible to speed up compression by about
+3-4x and decompression by about 2-2.5x (relative to libjpeg v6b) through the
+use of AltiVec instructions.
+
+[2] Added two new libjpeg API functions (jpeg_skip_scanlines() and
+jpeg_crop_scanline()) that can be used to partially decode a JPEG image.  See
+libjpeg.txt for more details.
+
+[3] The TJCompressor and TJDecompressor classes in the TurboJPEG Java API now
+implement the Closeable interface, so those classes can be used with a
+try-with-resources statement.
+
+[4] The TurboJPEG Java classes now throw unchecked idiomatic exceptions
+(IllegalArgumentException, IllegalStateException) for unrecoverable errors
+caused by incorrect API usage, and those classes throw a new checked exception
+type (TJException) for errors that are passed through from the C library.
+
+[5] Source buffers for the TurboJPEG C API functions, as well as the
+jpeg_mem_src() function in the libjpeg API, are now declared as const pointers.
+This facilitates passing read-only buffers to those functions and ensures the
+caller that the source buffer will not be modified.  This should not create any
+backward API or ABI incompatibilities with prior libjpeg-turbo releases.
+
+[6] The MIPS DSPr2 SIMD code can now be compiled to support either FR=0 or FR=1
+FPUs.
+
+[7] Fixed additional negative left shifts and other issues reported by the GCC
+and Clang undefined behavior sanitizers.  Most of these issues affected only
+32-bit code, and none of them was known to pose a security threat, but removing
+the warnings makes it easier to detect actual security issues, should they
+arise in the future.
+
+[8] Removed the unnecessary .arch directive from the ARM64 NEON SIMD code.
+This directive was preventing the code from assembling using the clang
+integrated assembler.
+
+[9] Fixed a regression caused by 1.4.1[6] that prevented 32-bit and 64-bit
 libjpeg-turbo RPMs from being installed simultaneously on recent Red Hat/Fedora
 distributions.  This was due to the addition of a macro in jconfig.h that
 allows the Huffman codec to determine the word size at compile time.  Since
@@ -10,7 +49,62 @@ between the i386 and x86_64 RPMs (any differing files, other than executables,
 are not allowed when 32-bit and 64-bit RPMs are installed simultaneously.)
 Since the macro is used only internally, it has been moved into jconfigint.h.
 
-[2] Fixed an issue in the accelerated Huffman decoder that could have caused
+[10] The x86-64 SIMD code can now be disabled at run time by setting the
+JSIMD_FORCENONE environment variable to 1 (the other SIMD implementations
+already had this capability.)
+
+[11] Added a new command-line argument to TJBench (-nowrite) that prevents the
+benchmark from outputting any images.  This removes any potential operating
+system overhead that might be caused by lazy writes to disk and thus improves
+the consistency of the performance measurements.
+
+[12] Added SIMD acceleration for Huffman encoding on SSE2-capable x86 and
+x86-64 platforms.  This speeds up the compression of full-color JPEGs by about
+10-15% on average (relative to libjpeg-turbo 1.4.x) when using modern Intel and
+AMD CPUs.  Additionally, this works around an issue in the clang optimizer that
+prevents it (as of this writing) from achieving the same performance as GCC
+when compiling the C version of the Huffman encoder
+(https://llvm.org/bugs/show_bug.cgi?id=16035). For the purposes of benchmarking
+or regression testing, SIMD-accelerated Huffman encoding can be disabled by
+setting the JSIMD_NOHUFFENC environment variable to 1.
+
+[13] Added ARM 64-bit (ARMv8) NEON SIMD implementations of the commonly-used
+compression algorithms (including the slow integer forward DCT and h2v2 & h2v1
+downsampling algorithms, which are not accelerated in the 32-bit NEON
+implementation.)  This speeds up the compression of full-color JPEGs by about
+75% on average on a Cavium ThunderX processor and by about 2-2.5x on average on
+Cortex-A53 and Cortex-A57 cores.
+
+[14] Added SIMD acceleration for Huffman encoding on NEON-capable ARM 32-bit
+and 64-bit platforms.
+
+For 32-bit code, this speeds up the compression of full-color JPEGs by about
+30% on average on a typical iOS device (iPhone 4S, Cortex-A9) and by about 6-7%
+on average on a typical Android device (Nexus 5X, Cortex-A53 and Cortex-A57),
+relative to libjpeg-turbo 1.4.x.  Note that the larger speedup under iOS is due
+to the fact that iOS builds use LLVM, which does not optimize the C Huffman
+encoder as well as GCC does.
+
+For 64-bit code, NEON-accelerated Huffman encoding speeds up the compression of
+full-color JPEGs by about 40% on average on a typical iOS device (iPhone 5S,
+Apple A7) and by about 7-8% on average on a typical Android device (Nexus 5X,
+Cortex-A53 and Cortex-A57), in addition to the speedup described in [13] above.
+
+For the purposes of benchmarking or regression testing, SIMD-accelerated
+Huffman encoding can be disabled by setting the JSIMD_NOHUFFENC environment
+variable to 1.
+
+[15] pkg-config (.pc) scripts are now included for both the libjpeg and
+TurboJPEG API libraries on Un*x systems.  Note that if a project's build system
+relies on these scripts, then it will not be possible to build that project
+with libjpeg or with a prior version of libjpeg-turbo.
+
+[16] Optimized the ARM 64-bit (ARMv8) NEON SIMD decompression routines to
+improve performance on CPUs with in-order pipelines.  This speeds up the
+decompression of full-color JPEGs by nearly 2x on average on a Cavium ThunderX
+processor and by about 15% on average on a Cortex-A53 core.
+
+[17] Fixed an issue in the accelerated Huffman decoder that could have caused
 the decoder to read past the end of the input buffer when a malformed,
 specially-crafted JPEG image was being decompressed.  In prior versions of
 libjpeg-turbo, the accelerated Huffman decoder was invoked (in most cases) only
@@ -19,11 +113,8 @@ to construct a JPEG image in which a single Huffman block is over 430 bytes
 long, so this version of libjpeg-turbo activates the accelerated Huffman
 decoder only if there are > 512 bytes of data in the input buffer.
 
-[3] Fixed a memory leak in tjunittest encountered when running the program
+[18] Fixed a memory leak in tjunittest encountered when running the program
 with the -yuv option.
-
-[4] Fixed an issue whereby a malformed motion-JPEG frame could cause the "fast
-path" of libjpeg-turbo's Huffman decoder to read from uninitialized memory.
 
 
 1.4.2
@@ -60,9 +151,6 @@ a JPEG image whose scaled output height is 1.
 Clang undefined behavior sanitizers.  None of these was known to pose a
 security threat, but removing the warnings makes it easier to detect actual
 security issues, should they arise in the future.
-
-[2] Added a new libjpeg API function (jpeg_skip_scanlines()) that can be used
-to partially decode a JPEG image.  See libjpeg.txt for more details.
 
 
 1.4.1
@@ -444,20 +532,11 @@ ABI.  The "age number" of the libjpeg-turbo library on Un*x systems has been
 incremented by 1 to reflect this.  You can disable this feature with a
 configure/CMake switch in order to retain strict API/ABI compatibility with the
 libjpeg v6b or v7 API/ABI (or with previous versions of libjpeg-turbo.)  See
-README-turbo.txt for more details.
+README.md for more details.
 
 [13] Added ARMv7s architecture to libjpeg.a and libturbojpeg.a in the official
 libjpeg-turbo binary package for OS X, so that those libraries can be used to
 build applications that leverage the faster CPUs in the iPhone 5 and iPad 4.
-
-[11] Fixed an issue in the accelerated Huffman decoder that could have caused
-the decoder to read past the end of the input buffer when a malformed,
-specially-crafted JPEG image was being decompressed.  In prior versions of
-libjpeg-turbo, the accelerated Huffman decoder was invoked (in most cases) only
-if there were > 128 bytes of data in the input buffer.  However, it is possible
-to construct a JPEG image in which a single Huffman block is over 430 bytes
-long, so this version of libjpeg-turbo activates the accelerated Huffman
-decoder only if there are > 512 bytes of data in the input buffer.
 
 
 1.2.1
@@ -689,7 +768,7 @@ tjDecompressToYUV(), to replace the somewhat hackish TJ_YUV flag.
 ==================
 
 [1] Added emulation of the libjpeg v7 and v8 APIs and ABIs.  See
-README-turbo.txt for more details.  This feature was sponsored by CamTrace SAS.
+README.md for more details.  This feature was sponsored by CamTrace SAS.
 
 [2] Created a new CMake-based build system for the Visual C++ and MinGW builds.
 

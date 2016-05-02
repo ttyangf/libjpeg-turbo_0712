@@ -6,7 +6,8 @@
  * Modified 2003-2010 by Guido Vollbeding.
  * libjpeg-turbo Modifications:
  * Copyright (C) 2010, D. R. Commander.
- * For conditions of distribution and use, see the accompanying README file.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
  *
  * This file contains master control logic for the JPEG compressor.
  * These routines are concerned with parameter validation, initial setup,
@@ -39,7 +40,7 @@ typedef struct {
   int scan_number;              /* current index in scan_info[] */
 } my_comp_master;
 
-typedef my_comp_master * my_master_ptr;
+typedef my_comp_master *my_master_ptr;
 
 
 /*
@@ -167,12 +168,12 @@ validate_script (j_compress_ptr cinfo)
  * determine whether it uses progressive JPEG, and set cinfo->progressive_mode.
  */
 {
-  const jpeg_scan_info * scanptr;
+  const jpeg_scan_info *scanptr;
   int scanno, ncomps, ci, coefi, thisi;
   int Ss, Se, Ah, Al;
   boolean component_sent[MAX_COMPONENTS];
 #ifdef C_PROGRESSIVE_SUPPORTED
-  int * last_bitpos_ptr;
+  int *last_bitpos_ptr;
   int last_bitpos[MAX_COMPONENTS][DCTSIZE2];
   /* -1 until that coefficient has been seen; then last Al for it */
 #endif
@@ -308,7 +309,7 @@ select_scan_parameters (j_compress_ptr cinfo)
   if (cinfo->scan_info != NULL) {
     /* Prepare for current scan --- the script is already validated */
     my_master_ptr master = (my_master_ptr) cinfo->master;
-    const jpeg_scan_info * scanptr = cinfo->scan_info + master->scan_number;
+    const jpeg_scan_info *scanptr = cinfo->scan_info + master->scan_number;
 
     cinfo->comps_in_scan = scanptr->comps_in_scan;
     for (ci = 0; ci < scanptr->comps_in_scan; ci++) {
@@ -602,7 +603,7 @@ jinit_c_master_control (j_compress_ptr cinfo, boolean transcode_only)
     cinfo->num_scans = 1;
   }
 
-  if (cinfo->progressive_mode && !cinfo->arith_code)    /*  TEMPORARY HACK ??? */
+  if (cinfo->progressive_mode && !cinfo->arith_code)  /*  TEMPORARY HACK ??? */
     cinfo->optimize_coding = TRUE; /* assume default tables no good for progressive mode */
 
   /* Initialize my private state */
