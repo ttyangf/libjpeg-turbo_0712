@@ -69,10 +69,3 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
-
-/* The size of `size_t', as computed by sizeof. */
-#if __WORDSIZE==64 || defined(_WIN64)
-#define SIZEOF_SIZE_T 8
-#else
-#define SIZEOF_SIZE_T 4
-#endif
