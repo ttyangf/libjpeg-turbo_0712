@@ -1,7 +1,16 @@
-1.5 beta1
-=========
+1.5.0
+=====
 
-[1] Added full SIMD acceleration for PowerPC platforms using AltiVec VMX
+### Significant changes relative to 1.5 beta1:
+
+1. Fixed an issue whereby a malformed motion-JPEG frame could cause the "fast
+path" of libjpeg-turbo's Huffman decoder to read from uninitialized memory.
+
+2. Added libjpeg-turbo version and build information to the global string table
+of the libjpeg and TurboJPEG API libraries.  This is a common practice in other
+infrastructure libraries, such as OpenSSL and libpng, because it makes it easy
+to examine an application binary and determine which version of the library the
+application was linked against.
 (128-bit SIMD) instructions.  Although the performance of libjpeg-turbo on
 PowerPC was already good, due to the increased number of registers available
 to the compiler vs. x86, it was still possible to speed up compression by about
