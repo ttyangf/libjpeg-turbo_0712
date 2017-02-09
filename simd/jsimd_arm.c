@@ -2,8 +2,8 @@
  * jsimd_arm.c
  *
  * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
- * Copyright 2009-2011, 2013-2014, 2016 D. R. Commander
- * Copyright 2015-2016 Matthieu Darbois
+ * Copyright (C) 2009-2011, 2013-2014, 2016, D. R. Commander.
+ * Copyright (C) 2015-2016, Matthieu Darbois.
  *
  * Based on the x86 SIMD extension for IJG JPEG library,
  * Copyright (C) 1999-2006, MIYASAKA Masaru.
@@ -125,7 +125,7 @@ init_simd (void)
   /* Force different settings through environment variables */
   env = getenv("JSIMD_FORCENEON");
   if ((env != NULL) && (strcmp(env, "1") == 0))
-    simd_support &= JSIMD_ARM_NEON;
+    simd_support = JSIMD_ARM_NEON;
   env = getenv("JSIMD_FORCENONE");
   if ((env != NULL) && (strcmp(env, "1") == 0))
     simd_support = 0;

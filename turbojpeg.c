@@ -368,6 +368,29 @@ static int getSubsamp(j_decompress_ptr dinfo)
 					retval=i;  break;
 				}
 			}
+			/* Handle 4:2:2 and 4:4:0 images whose sampling factors are specified
+			   in non-standard ways. */
+			if(dinfo->comp_info[0].h_samp_factor==2 &&
+				dinfo->comp_info[0].v_samp_factor==2 &&
+				(i==TJSAMP_422 || i==TJSAMP_440))
+			{
+				int match=0;
+				for(k=1; k<dinfo->num_components; k++)
+				{
+					int href=tjMCUHeight[i]/8, vref=tjMCUWidth[i]/8;
+					if(dinfo->jpeg_color_space==JCS_YCCK && k==3)
+					{
+						href=vref=2;
+					}
+					if(dinfo->comp_info[k].h_samp_factor==href
+						&& dinfo->comp_info[k].v_samp_factor==vref)
+						match++;
+				}
+				if(match==dinfo->num_components-1)
+				{
+					retval=i;  break;
+				}
+			}
 		}
 	}
 	return retval;
@@ -570,7 +593,8 @@ static tjhandle _tjInitCompress(tjinstance *this)
 	if(setjmp(this->jerr.setjmp_buffer))
 	{
 		/* If we get here, the JPEG code has signaled an error. */
-		if(this) free(this);  return NULL;
+		if(this) free(this);
+		return NULL;
 	}
 
 	jpeg_create_compress(&this->cinfo);
@@ -1231,7 +1255,8 @@ static tjhandle _tjInitDecompress(tjinstance *this)
 	if(setjmp(this->jerr.setjmp_buffer))
 	{
 		/* If we get here, the JPEG code has signaled an error. */
-		if(this) free(this);  return NULL;
+		if(this) free(this);
+		return NULL;
 	}
 
 	jpeg_create_decompress(&this->dinfo);
@@ -1891,6 +1916,12 @@ DLLEXPORT int DLLCALL tjDecompressToYUV2(tjhandle handle,
 	if(jpegBuf==NULL || jpegSize<=0 || dstBuf==NULL || width<0 || pad<1
 		|| !isPow2(pad) || height<0)
 		_throw("tjDecompressToYUV2(): Invalid argument");
+
+	if(setjmp(this->jerr.setjmp_buffer))
+	{
+		/* If we get here, the JPEG code has signaled an error. */
+		return -1;
+	}
 
 	jpeg_mem_src_tj(dinfo, jpegBuf, jpegSize);
 	jpeg_read_header(dinfo, TRUE);

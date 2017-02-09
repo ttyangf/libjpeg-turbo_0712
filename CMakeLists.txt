@@ -2,31 +2,38 @@
 # Setup
 #
 
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 2.8.11)
 # Use LINK_INTERFACE_LIBRARIES instead of INTERFACE_LINK_LIBRARIES
 if(POLICY CMP0022)
   cmake_policy(SET CMP0022 OLD)
 endif()
 
 project(libjpeg-turbo C)
-set(VERSION 1.4.90)
-
-if(CYGWIN OR NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-  execute_process(COMMAND "date" "+%Y%m%d" OUTPUT_VARIABLE BUILD)
-  string(REGEX REPLACE "\n" "" BUILD ${BUILD})
-elseif(WIN32)
-  execute_process(COMMAND "wmic.exe" "os" "get" "LocalDateTime" OUTPUT_VARIABLE
-    BUILD)
-  string(REGEX REPLACE "[^0-9]" "" BUILD "${BUILD}")
-  if (BUILD STREQUAL "")
-    execute_process(COMMAND "cmd.exe" "/C" "DATE" "/T" OUTPUT_VARIABLE BUILD)
-    string(REGEX REPLACE ".*[ ]([0-9]*)[/.]([0-9]*)[/.]([0-9]*).*" "\\3\\2\\1" BUILD "${BUILD}")
-  else()
-    string(SUBSTRING "${BUILD}" 0 8 BUILD)
+set(VERSION 1.5.1)
+string(REPLACE "." ";" VERSION_TRIPLET ${VERSION})
+list(GET VERSION_TRIPLET 0 VERSION_MAJOR)
+list(GET VERSION_TRIPLET 1 VERSION_MINOR)
+list(GET VERSION_TRIPLET 2 VERSION_REVISION)
+function(pad_number NUMBER OUTPUT_LEN)
+  string(LENGTH "${${NUMBER}}" INPUT_LEN)
+  if(INPUT_LEN LESS OUTPUT_LEN)
+    math(EXPR ZEROES "${OUTPUT_LEN} - ${INPUT_LEN} - 1")
+    set(NUM ${${NUMBER}})
+    foreach(C RANGE ${ZEROES})
+      set(NUM "0${NUM}")
+    endforeach()
+    set(${NUMBER} ${NUM} PARENT_SCOPE)
   endif()
-else()
+endfunction()
+pad_number(VERSION_MINOR 3)
+pad_number(VERSION_REVISION 3)
+set(LIBJPEG_TURBO_VERSION_NUMBER ${VERSION_MAJOR}${VERSION_MINOR}${VERSION_REVISION})
+
+if(NOT WIN32)
   message(FATAL_ERROR "Platform not supported by this build system.  Use autotools instead.")
 endif()
+
+string(TIMESTAMP BUILD "%Y%m%d")
 
 # This does nothing except when using MinGW.  CMAKE_BUILD_TYPE has no meaning
 # in Visual Studio, and it always defaults to Debug when using NMake.
@@ -45,8 +52,8 @@ endif()
 message(STATUS "VERSION = ${VERSION}, BUILD = ${BUILD}")
 
 option(WITH_SIMD "Include SIMD extensions" TRUE)
-option(WITH_ARITH_ENC "Include arithmetic encoding support" TRUE)
-option(WITH_ARITH_DEC "Include arithmetic decoding support" TRUE)
+option(WITH_ARITH_ENC "Include arithmetic encoding support when emulating the libjpeg v6b API/ABI" TRUE)
+option(WITH_ARITH_DEC "Include arithmetic decoding support when emulating the libjpeg v6b API/ABI" TRUE)
 option(WITH_JPEG7 "Emulate libjpeg v7 API/ABI (this makes libjpeg-turbo backward incompatible with libjpeg v6b)" FALSE)
 option(WITH_JPEG8 "Emulate libjpeg v8 API/ABI (this makes libjpeg-turbo backward incompatible with libjpeg v6b)" FALSE)
 option(WITH_MEM_SRCDST "Include in-memory source/destination manager functions when emulating the libjpeg v6b or v7 API/ABI" TRUE)
@@ -66,6 +73,14 @@ if(WITH_12BIT)
   message(STATUS "12-bit JPEG support enabled")
 else()
   set(BITS_IN_JSAMPLE 8)
+endif()
+
+if(WITH_JPEG8 OR WITH_JPEG7)
+  set(WITH_ARITH_ENC 1)
+  set(WITH_ARITH_DEC 1)
+endif()
+if(WITH_JPEG8)
+  set(WITH_MEM_SRCDST 1)
 endif()
 
 if(WITH_ARITH_ENC)
